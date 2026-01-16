@@ -163,10 +163,12 @@ describe('Failing Tests - Features Not Yet Implemented', () => {
       // Search for "grocery"
       const searchInput = screen.getByTestId('search-input')
       await user.type(searchInput, 'grocery')
-      
-      // Should only show grocery spending
-      expect(screen.getByText('"Grocery shopping"')).toBeInTheDocument()
-      expect(screen.queryByText('"Gas station"')).not.toBeInTheDocument()
+
+      // Should only show grocery spending (wait for debounce)
+      await waitFor(() => {
+        expect(screen.getByText('"Grocery shopping"')).toBeInTheDocument()
+        expect(screen.queryByText('"Gas station"')).not.toBeInTheDocument()
+      })
     })
   })
 
@@ -221,9 +223,16 @@ describe('Failing Tests - Features Not Yet Implemented', () => {
   })
 
   describe('Export Functionality', () => {
-    it('should have an export to CSV button', () => {
+    it('should have an export to CSV button', async () => {
+      const user = userEvent.setup()
       render(<App />)
-      
+
+      // Add a spending first so export button appears
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+      await user.type(amountInput, '50.00')
+      await user.click(addButton)
+
       expect(screen.getByTestId('export-csv-btn')).toBeInTheDocument()
       expect(screen.getByText('Export to CSV')).toBeInTheDocument()
     })
