@@ -16,11 +16,13 @@ function App() {
   const handleInputChange = (field, value) => {
     if (field === 'amount') {
       // Only allow numbers and decimal point
-      const numericValue = value.replace(/[^0-9.]/g, '');
-      // Prevent multiple decimal points
-      const parts = numericValue.split('.');
-      if (parts.length > 2) {
-        return;
+      let numericValue = value.replace(/[^0-9.]/g, '');
+      // Prevent multiple decimal points - keep only first decimal and 2 digits after
+      const firstDotIndex = numericValue.indexOf('.');
+      if (firstDotIndex !== -1) {
+        const beforeDot = numericValue.substring(0, firstDotIndex);
+        const afterDot = numericValue.substring(firstDotIndex + 1).replace(/\./g, '').substring(0, 2);
+        numericValue = beforeDot + '.' + afterDot;
       }
       setFormData(prev => ({ ...prev, amount: numericValue }));
     } else if (field === 'note') {
