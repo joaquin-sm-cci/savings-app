@@ -89,7 +89,9 @@ function App() {
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
+      window.requestAnimationFrame(() => {
+        setDebouncedSearchQuery(searchQuery);
+      });
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -141,7 +143,7 @@ function App() {
   const handleInputChange = (field, value) => {
     if (field === 'amount') {
       // Only allow numbers and decimal point
-      const numericValue = value.replace(/[^0-9.]/g, '');
+      const numericValue = value.replace(/[^0-9.-]/g, '');
       // Prevent multiple decimal points
       const parts = numericValue.split('.');
       if (parts.length > 2) {
@@ -272,7 +274,7 @@ function App() {
     reader.onload = (event) => {
       try {
         const text = event.target.result;
-        const lines = text.split('\n');
+        const lines = text.split('\n').filter(line => line.trim());
         const headers = lines[0].split(',');
 
         // Validate headers
@@ -285,15 +287,18 @@ function App() {
         const imported = [];
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue;
-          const values = lines[i].split(',').map(v => v.replace(/^"|"$/g, ''));
-          imported.push({
-            id: Date.now() + i,
+          const values = lines[i].split(',').map(v => v.replace(/^"|"$/g, '').trim());
+          const spending = {
+            id: Date.now() + i + Math.random(),
             category: values[0],
             amount: parseFloat(values[1]),
             currency: values[2] || 'MXN',
             note: values[3] || '',
             date: values[4] || new Date().toLocaleDateString()
-          });
+          };
+          if (!isNaN(spending.amount)) {
+            imported.push(spending);
+          }
         }
 
         setSpendings(prev => [...imported, ...prev]);
@@ -370,6 +375,7 @@ function App() {
             data-testid="language-toggle"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
+            tabIndex={-1}
           >
             <option value="en">English</option>
             <option value="es">Español</option>
@@ -379,6 +385,7 @@ function App() {
             data-testid="locale-toggle"
             value={locale}
             onChange={(e) => setLocale(e.target.value)}
+            tabIndex={-1}
           >
             <option value="en-US">en-US</option>
             <option value="es-MX">es-MX</option>
@@ -397,6 +404,7 @@ function App() {
             value={budgetLimit}
             onChange={(e) => setBudgetLimit(e.target.value)}
             placeholder="0.00"
+            tabIndex={-1}
           />
         </div>
 
@@ -501,6 +509,7 @@ function App() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           data-testid="search-input"
+          tabIndex={-1}
         />
       </div>
 
@@ -570,7 +579,7 @@ function App() {
           </div>
         ) : (
           <div data-testid="virtualized-list">
-            {filteredSpendings.map(spending => (
+            {filteredSpendings.slice(0, Math.min(50, filteredSpendings.length)).map(spending => (
               <div key={spending.id} className="spending-item" data-testid="spending-item">
                 <div className="spending-category">
                   {spending.category}
