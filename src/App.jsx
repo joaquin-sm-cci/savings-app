@@ -142,7 +142,7 @@ function App() {
 
   const handleInputChange = (field, value) => {
     if (field === 'amount') {
-      // Only allow numbers and decimal point
+      // Allow numbers, decimal point, and negative sign for validation
       const numericValue = value.replace(/[^0-9.-]/g, '');
       // Prevent multiple decimal points
       const parts = numericValue.split('.');
@@ -150,10 +150,11 @@ function App() {
         return;
       }
       // Limit to 2 decimal places
+      let finalValue = numericValue;
       if (parts.length === 2 && parts[1].length > 2) {
-        return;
+        finalValue = parts[0] + '.' + parts[1].substring(0, 2);
       }
-      setFormData(prev => ({ ...prev, amount: numericValue }));
+      setFormData(prev => ({ ...prev, amount: finalValue }));
     } else if (field === 'note') {
       // Limit to 140 characters
       if (value.length <= 140) {
@@ -184,6 +185,12 @@ function App() {
       return; // Already filtered by UI but double-check
     }
 
+    // Check for unusually large amounts - show warning but allow
+    if (amount > 999999999999) {
+      setAnnouncement(t.unusuallyLargeAmount);
+      // Don't clear the announcement immediately, let it persist
+    }
+
     const newSpending = {
       id: Date.now(),
       category: formData.category,
@@ -195,9 +202,11 @@ function App() {
 
     setSpendings(prev => [newSpending, ...prev]);
 
-    // Announcement for screen readers
-    setAnnouncement(`${t.newSpendingAdded} ${formatAmount(amount, formData.currency, locale)} ${t.added}`);
-    setTimeout(() => setAnnouncement(''), 3000);
+    // Announcement for screen readers (unless we already set the large amount warning)
+    if (amount <= 999999999999) {
+      setAnnouncement(`${t.newSpendingAdded} ${formatAmount(amount, formData.currency, locale)} ${t.added}`);
+      setTimeout(() => setAnnouncement(''), 3000);
+    }
 
     // Reset form
     setFormData({
@@ -281,6 +290,7 @@ function App() {
         if (!headers.includes('Category') || !headers.includes('Amount')) {
           setAnnouncement(t.invalidCsvFormat);
           setTimeout(() => setAnnouncement(''), 3000);
+          e.target.value = '';
           return;
         }
 
@@ -302,9 +312,11 @@ function App() {
         }
 
         setSpendings(prev => [...imported, ...prev]);
+        e.target.value = '';
       } catch (error) {
         setAnnouncement(t.invalidCsvFormat);
         setTimeout(() => setAnnouncement(''), 3000);
+        e.target.value = '';
       }
     };
     reader.readAsText(file);
@@ -344,7 +356,7 @@ function App() {
   const hasNegativeAmount = formData.amount && formData.amount.includes('-');
 
   // Check for unusually large amount
-  const isUnusuallyLarge = formData.amount && parseFloat(formData.amount) > 999999;
+  const isUnusuallyLarge = formData.amount && parseFloat(formData.amount) > 999999999999;
 
   return (
     <div className="container high-contrast-supported" role="main">
@@ -490,10 +502,18 @@ function App() {
         </div>
 
         <button
-          className="add-btn"
-          onClick={addSpending}
+          className={`add-btn ${!isFormValid ? 'btn-disabled' : ''}`}
+          onClick={(e) => {
+            if (!isFormValid) {
+              e.preventDefault();
+              return false;
+            }
+            addSpending();
+          }}
           disabled={!isFormValid}
+          aria-disabled={!isFormValid}
           data-testid="add-spending-btn"
+          style={!isFormValid ? { pointerEvents: 'auto', cursor: 'not-allowed' } : {}}
         >
           Add Spending
         </button>
@@ -579,7 +599,7 @@ function App() {
           </div>
         ) : (
           <div data-testid="virtualized-list">
-            {filteredSpendings.slice(0, Math.min(50, filteredSpendings.length)).map(spending => (
+            {filteredSpendings.slice(0, Math.min(20, filteredSpendings.length)).map(spending => (
               <div key={spending.id} className="spending-item" data-testid="spending-item">
                 <div className="spending-category">
                   {spending.category}
