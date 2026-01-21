@@ -64,8 +64,8 @@ describe('Edge Cases and Advanced Features - Failing Tests', () => {
       await user.tab()
       expect(amountInput).toHaveFocus()
 
-      await user.tab() // Skip currency button
-      await user.tab()
+      await user.tab() // Goes to currency button
+      await user.tab() // Goes to note input
       expect(noteInput).toHaveFocus()
 
       await user.tab()
