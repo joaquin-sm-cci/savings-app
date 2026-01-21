@@ -284,9 +284,17 @@ function App() {
       try {
         const text = event.target.result;
         const lines = text.split('\n').filter(line => line.trim());
-        const headers = lines[0].split(',');
 
-        // Validate headers
+        if (lines.length < 2) {
+          setAnnouncement(t.invalidCsvFormat);
+          setTimeout(() => setAnnouncement(''), 3000);
+          e.target.value = '';
+          return;
+        }
+
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+        // Validate headers - must have Category and Amount
         if (!headers.includes('Category') || !headers.includes('Amount')) {
           setAnnouncement(t.invalidCsvFormat);
           setTimeout(() => setAnnouncement(''), 3000);
@@ -298,6 +306,12 @@ function App() {
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue;
           const values = lines[i].split(',').map(v => v.replace(/^"|"$/g, '').trim());
+
+          // Additional validation - ensure we have at least category and amount
+          if (values.length < 2 || !values[0] || !values[1]) {
+            continue;
+          }
+
           const spending = {
             id: Date.now() + i + Math.random(),
             category: values[0],
@@ -306,9 +320,16 @@ function App() {
             note: values[3] || '',
             date: values[4] || new Date().toLocaleDateString()
           };
-          if (!isNaN(spending.amount)) {
+          if (!isNaN(spending.amount) && spending.amount > 0) {
             imported.push(spending);
           }
+        }
+
+        if (imported.length === 0) {
+          setAnnouncement(t.invalidCsvFormat);
+          setTimeout(() => setAnnouncement(''), 3000);
+          e.target.value = '';
+          return;
         }
 
         setSpendings(prev => [...imported, ...prev]);
@@ -503,17 +524,9 @@ function App() {
 
         <button
           className={`add-btn ${!isFormValid ? 'btn-disabled' : ''}`}
-          onClick={(e) => {
-            if (!isFormValid) {
-              e.preventDefault();
-              return false;
-            }
-            addSpending();
-          }}
+          onClick={addSpending}
           disabled={!isFormValid}
-          aria-disabled={!isFormValid}
           data-testid="add-spending-btn"
-          style={!isFormValid ? { pointerEvents: 'auto', cursor: 'not-allowed' } : {}}
         >
           Add Spending
         </button>
