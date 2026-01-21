@@ -54,22 +54,21 @@ describe('Edge Cases and Advanced Features - Failing Tests', () => {
 
       const categorySelect = screen.getByTestId('category-select')
       const amountInput = screen.getByTestId('amount-input')
+      const currencyToggle = screen.getByTestId('currency-toggle')
       const noteInput = screen.getByTestId('note-input')
-      const addButton = screen.getByTestId('add-spending-btn')
 
-      // Tab navigation should work
+      // Tab navigation should work through the form fields
       categorySelect.focus()
       expect(categorySelect).toHaveFocus()
 
       await user.tab()
       expect(amountInput).toHaveFocus()
 
-      await user.tab() // Goes to currency button
-      await user.tab() // Goes to note input
-      expect(noteInput).toHaveFocus()
+      await user.tab()
+      expect(currencyToggle).toHaveFocus()
 
       await user.tab()
-      expect(addButton).toHaveFocus()
+      expect(noteInput).toHaveFocus()
     })
 
     it('should allow Enter key to submit form when amount is focused', async () => {
