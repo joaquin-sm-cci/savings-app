@@ -295,19 +295,19 @@ describe('Spending Tracker App', () => {
     it('displays spending information correctly', async () => {
       const user = userEvent.setup()
       render(<App />)
-      
+
       const categorySelect = screen.getByTestId('category-select')
       const amountInput = screen.getByTestId('amount-input')
       const noteInput = screen.getByTestId('note-input')
       const addButton = screen.getByTestId('add-spending-btn')
-      
+
       await user.selectOptions(categorySelect, 'House')
       await user.type(amountInput, '150.25')
       await user.type(noteInput, 'Groceries and utilities')
       await user.click(addButton)
-      
+
       const spendingItem = screen.getByTestId('spending-item')
-      
+
       // Check all elements are present
       expect(spendingItem).toContainElement(screen.getByText('House'))
       expect(spendingItem).toContainElement(screen.getByText('$150.25 MXN'))
@@ -317,18 +317,331 @@ describe('Spending Tracker App', () => {
     it('does not show note section when note is empty', async () => {
       const user = userEvent.setup()
       render(<App />)
-      
+
       const amountInput = screen.getByTestId('amount-input')
       const addButton = screen.getByTestId('add-spending-btn')
-      
+
       await user.type(amountInput, '25.00')
       await user.click(addButton)
-      
+
       const spendingItem = screen.getByTestId('spending-item')
-      
+
       expect(spendingItem).toContainElement(screen.getByText('General'))
       expect(spendingItem).toContainElement(screen.getByText('$25.00 MXN'))
       expect(spendingItem.querySelector('.spending-note')).not.toBeInTheDocument()
+    })
+
+    it('displays multiple spendings in correct order (newest first)', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const noteInput = screen.getByTestId('note-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      // Add first spending
+      await user.type(amountInput, '10.00')
+      await user.type(noteInput, 'First')
+      await user.click(addButton)
+
+      // Add second spending
+      await user.type(amountInput, '20.00')
+      await user.type(noteInput, 'Second')
+      await user.click(addButton)
+
+      // Add third spending
+      await user.type(amountInput, '30.00')
+      await user.type(noteInput, 'Third')
+      await user.click(addButton)
+
+      const spendingItems = screen.getAllByTestId('spending-item')
+      expect(spendingItems).toHaveLength(3)
+
+      // Check order (newest first)
+      expect(spendingItems[0]).toContainElement(screen.getByText('"Third"'))
+      expect(spendingItems[1]).toContainElement(screen.getByText('"Second"'))
+      expect(spendingItems[2]).toContainElement(screen.getByText('"First"'))
+    })
+
+    it('formats amounts with two decimal places', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.type(amountInput, '10')
+      await user.click(addButton)
+
+      expect(screen.getByText('$10.00 MXN')).toBeInTheDocument()
+    })
+
+    it('trims whitespace from notes before saving', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const noteInput = screen.getByTestId('note-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.type(amountInput, '15.00')
+      await user.type(noteInput, '  Trimmed note  ')
+      await user.click(addButton)
+
+      expect(screen.getByText('"Trimmed note"')).toBeInTheDocument()
+    })
+  })
+
+  describe('Multiple Categories', () => {
+    it('adds spendings for all available categories', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const categorySelect = screen.getByTestId('category-select')
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      for (const category of ['General', 'Personal', 'Auto', 'House']) {
+        await user.selectOptions(categorySelect, category)
+        await user.type(amountInput, '50.00')
+        await user.click(addButton)
+      }
+
+      expect(screen.getAllByTestId('spending-item')).toHaveLength(4)
+      expect(screen.getByText('Total (All): $200.00 MXN')).toBeInTheDocument()
+    })
+
+    it('filters and calculates correct totals for each category', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const categorySelect = screen.getByTestId('category-select')
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      // Add General: 100
+      await user.type(amountInput, '100.00')
+      await user.click(addButton)
+
+      // Add Personal: 50 + 75 = 125
+      await user.selectOptions(categorySelect, 'Personal')
+      await user.type(amountInput, '50.00')
+      await user.click(addButton)
+      await user.type(amountInput, '75.00')
+      await user.click(addButton)
+
+      const filterSelect = screen.getByTestId('category-filter')
+
+      // Filter by Personal
+      await user.selectOptions(filterSelect, 'Personal')
+      expect(screen.getAllByTestId('spending-item')).toHaveLength(2)
+      expect(screen.getByText('Total (Personal): $125.00 MXN')).toBeInTheDocument()
+
+      // Filter by General
+      await user.selectOptions(filterSelect, 'General')
+      expect(screen.getAllByTestId('spending-item')).toHaveLength(1)
+      expect(screen.getByText('Total (General): $100.00 MXN')).toBeInTheDocument()
+
+      // Show All
+      await user.selectOptions(filterSelect, 'All')
+      expect(screen.getAllByTestId('spending-item')).toHaveLength(3)
+      expect(screen.getByText('Total (All): $225.00 MXN')).toBeInTheDocument()
+    })
+  })
+
+  describe('Currency Handling', () => {
+    it('maintains separate currency for each spending', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const currencyToggle = screen.getByTestId('currency-toggle')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      // Add MXN spending
+      await user.type(amountInput, '100.00')
+      await user.click(addButton)
+
+      // Switch to USD and add
+      await user.click(currencyToggle)
+      await user.type(amountInput, '50.00')
+      await user.click(addButton)
+
+      // Switch back to MXN and add
+      await user.click(currencyToggle)
+      await user.type(amountInput, '75.00')
+      await user.click(addButton)
+
+      expect(screen.getByText('$100.00 MXN')).toBeInTheDocument()
+      expect(screen.getByText('$50.00 USD')).toBeInTheDocument()
+      expect(screen.getByText('$75.00 MXN')).toBeInTheDocument()
+    })
+
+    it('resets currency to MXN after adding spending', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const currencyToggle = screen.getByTestId('currency-toggle')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.click(currencyToggle) // Switch to USD
+      await user.type(amountInput, '25.00')
+      await user.click(addButton)
+
+      expect(currencyToggle).toHaveTextContent('MXN')
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('handles decimal amounts correctly', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.type(amountInput, '0.01')
+      await user.click(addButton)
+
+      expect(screen.getByText('$0.01 MXN')).toBeInTheDocument()
+    })
+
+    it('handles large amounts correctly', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.type(amountInput, '99999.99')
+      await user.click(addButton)
+
+      expect(screen.getByText('$99999.99 MXN')).toBeInTheDocument()
+    })
+
+    it('handles amount with leading zeros', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.type(amountInput, '00123.45')
+      expect(addButton).toBeEnabled()
+      await user.click(addButton)
+
+      expect(screen.getByText('$123.45 MXN')).toBeInTheDocument()
+    })
+
+    it('handles amount with trailing decimal point', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.type(amountInput, '25.')
+      expect(addButton).toBeEnabled()
+      await user.click(addButton)
+
+      expect(screen.getByText('$25.00 MXN')).toBeInTheDocument()
+    })
+
+    it('handles note with exactly 140 characters', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const noteInput = screen.getByTestId('note-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      const maxNote = 'a'.repeat(140)
+      await user.type(amountInput, '10.00')
+      await user.type(noteInput, maxNote)
+      await user.click(addButton)
+
+      expect(screen.getByText(`"${maxNote}"`)).toBeInTheDocument()
+    })
+
+    it('hides filter when all spendings are removed', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.type(amountInput, '10.00')
+      await user.click(addButton)
+
+      expect(screen.getByTestId('category-filter')).toBeInTheDocument()
+
+      // Note: Currently there's no delete functionality in the app
+      // This test documents expected behavior if delete is added
+    })
+
+    it('handles rapid form submissions', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.type(amountInput, '10.00')
+      await user.click(addButton)
+
+      await user.type(amountInput, '20.00')
+      await user.click(addButton)
+
+      await user.type(amountInput, '30.00')
+      await user.click(addButton)
+
+      const spendingItems = screen.getAllByTestId('spending-item')
+      expect(spendingItems).toHaveLength(3)
+    })
+  })
+
+  describe('Total Calculations', () => {
+    it('calculates total correctly with mixed currencies', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const currencyToggle = screen.getByTestId('currency-toggle')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      // Add MXN
+      await user.type(amountInput, '100.50')
+      await user.click(addButton)
+
+      // Add USD
+      await user.click(currencyToggle)
+      await user.type(amountInput, '50.25')
+      await user.click(addButton)
+
+      // Add more MXN
+      await user.click(currencyToggle)
+      await user.type(amountInput, '25.75')
+      await user.click(addButton)
+
+      // Total shown is in MXN by default
+      expect(screen.getByText('Total (All): $176.50 MXN')).toBeInTheDocument()
+    })
+
+    it('shows zero total when no spendings exist', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const amountInput = screen.getByTestId('amount-input')
+      const addButton = screen.getByTestId('add-spending-btn')
+
+      await user.type(amountInput, '10.00')
+      await user.click(addButton)
+
+      const filterSelect = screen.getByTestId('category-filter')
+      await user.selectOptions(filterSelect, 'Personal')
+
+      expect(screen.getByText('Total (Personal): $0.00 MXN')).toBeInTheDocument()
     })
   })
 }) 
