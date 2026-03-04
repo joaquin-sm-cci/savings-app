@@ -1,3 +1,10 @@
+version: 2.1
 workflows:
+  jobs:
+    - cci-agent-setup
+
+jobs:
   cci-agent-setup:
     circleci_ip_ranges: true
+    docker:
+      - image: cimg/base:stable
