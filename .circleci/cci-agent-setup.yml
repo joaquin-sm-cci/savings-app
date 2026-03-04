@@ -1,7 +1,5 @@
-
-workflows:
+jobs:
   cci-agent-setup:
     circleci_ip_ranges: true
     steps:
       - checkout
-            
