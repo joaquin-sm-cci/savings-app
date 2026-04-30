@@ -4,7 +4,7 @@ A minimalistic React web application for tracking your spending with categories,
 
 [![CI](https://github.com/luisejroblesci/savings-app/actions/workflows/ci.yml/badge.svg)](https://github.com/luisejroblesci/savings-app/actions/workflows/ci.yml)
 
-## Features!!
+## Features!!!
 
 ### Current Features ✅
 - **Add Spending**: Add new expenses with category, amount, currency, and optional notes
