@@ -15,14 +15,10 @@ function App() {
 
   const handleInputChange = (field, value) => {
     if (field === 'amount') {
-      // Only allow numbers and decimal point
+      // Strip non-numeric chars, then keep only digits up to one decimal point with at most 2 decimal places
       const numericValue = value.replace(/[^0-9.]/g, '');
-      // Prevent multiple decimal points
-      const parts = numericValue.split('.');
-      if (parts.length > 2) {
-        return;
-      }
-      setFormData(prev => ({ ...prev, amount: numericValue }));
+      const validValue = numericValue.match(/^\d*\.?\d{0,2}/)?.[0] ?? '';
+      setFormData(prev => ({ ...prev, amount: validValue }));
     } else if (field === 'note') {
       // Limit to 140 characters
       if (value.length <= 140) {
