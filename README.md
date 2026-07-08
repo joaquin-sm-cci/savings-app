@@ -2,6 +2,9 @@
 
 A minimalistic React web application for tracking your spending with categories, amounts, and notes.
 
+**Author**: Joaquin Sandoval M.
+**Email**: joaquin.sandoval@circleci.com
+
 [![CI](https://github.com/luisejroblesci/savings-app/actions/workflows/ci.yml/badge.svg)](https://github.com/luisejroblesci/savings-app/actions/workflows/ci.yml)
 
 ## Features

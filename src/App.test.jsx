@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import App from './App'
@@ -28,9 +28,9 @@ describe('Spending Tracker App', () => {
 
     it('has default form values', () => {
       render(<App />)
-      
+
       expect(screen.getByDisplayValue('General')).toBeInTheDocument()
-      expect(screen.getByDisplayValue('MXN')).toBeInTheDocument()
+      expect(screen.getByTestId('currency-toggle')).toHaveTextContent('MXN')
       expect(screen.getByPlaceholderText('0.00')).toHaveValue('')
       expect(screen.getByPlaceholderText('Add a note about this spending...')).toHaveValue('')
     })
@@ -113,9 +113,9 @@ describe('Spending Tracker App', () => {
     it('prevents multiple decimal points', async () => {
       const user = userEvent.setup()
       render(<App />)
-      
+
       const amountInput = screen.getByTestId('amount-input')
-      
+
       await user.type(amountInput, '123.45.67')
       expect(amountInput).toHaveValue('123.45')
     })
@@ -154,20 +154,21 @@ describe('Spending Tracker App', () => {
     it('adds a new spending when form is valid', async () => {
       const user = userEvent.setup()
       render(<App />)
-      
+
       // Fill form
       const categorySelect = screen.getByTestId('category-select')
       const amountInput = screen.getByTestId('amount-input')
       const noteInput = screen.getByTestId('note-input')
       const addButton = screen.getByTestId('add-spending-btn')
-      
+
       await user.selectOptions(categorySelect, 'Personal')
       await user.type(amountInput, '50.75')
       await user.type(noteInput, 'Coffee and lunch')
       await user.click(addButton)
-      
+
       // Check spending was added
-      expect(screen.getByText('Personal')).toBeInTheDocument()
+      const spendingItem = screen.getByTestId('spending-item')
+      expect(within(spendingItem).getByText('Personal')).toBeInTheDocument()
       expect(screen.getByText('$50.75 MXN')).toBeInTheDocument()
       expect(screen.getByText('"Coffee and lunch"')).toBeInTheDocument()
     })
@@ -307,11 +308,11 @@ describe('Spending Tracker App', () => {
       await user.click(addButton)
       
       const spendingItem = screen.getByTestId('spending-item')
-      
+
       // Check all elements are present
-      expect(spendingItem).toContainElement(screen.getByText('House'))
-      expect(spendingItem).toContainElement(screen.getByText('$150.25 MXN'))
-      expect(spendingItem).toContainElement(screen.getByText('"Groceries and utilities"'))
+      expect(within(spendingItem).getByText('House')).toBeInTheDocument()
+      expect(within(spendingItem).getByText('$150.25 MXN')).toBeInTheDocument()
+      expect(within(spendingItem).getByText('"Groceries and utilities"')).toBeInTheDocument()
     })
 
     it('does not show note section when note is empty', async () => {
@@ -325,9 +326,9 @@ describe('Spending Tracker App', () => {
       await user.click(addButton)
       
       const spendingItem = screen.getByTestId('spending-item')
-      
-      expect(spendingItem).toContainElement(screen.getByText('General'))
-      expect(spendingItem).toContainElement(screen.getByText('$25.00 MXN'))
+
+      expect(within(spendingItem).getByText('General')).toBeInTheDocument()
+      expect(within(spendingItem).getByText('$25.00 MXN')).toBeInTheDocument()
       expect(spendingItem.querySelector('.spending-note')).not.toBeInTheDocument()
     })
   })
