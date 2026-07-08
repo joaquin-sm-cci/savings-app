@@ -15,14 +15,16 @@ function App() {
 
   const handleInputChange = (field, value) => {
     if (field === 'amount') {
-      // Only allow numbers and decimal point
       const numericValue = value.replace(/[^0-9.]/g, '');
-      // Prevent multiple decimal points
-      const parts = numericValue.split('.');
-      if (parts.length > 2) {
-        return;
+      const dotIndex = numericValue.indexOf('.');
+      let cleanValue;
+      if (dotIndex !== -1) {
+        const afterDot = numericValue.slice(dotIndex + 1).replace(/\./g, '');
+        cleanValue = numericValue.slice(0, dotIndex + 1) + afterDot.slice(0, 2);
+      } else {
+        cleanValue = numericValue;
       }
-      setFormData(prev => ({ ...prev, amount: numericValue }));
+      setFormData(prev => ({ ...prev, amount: cleanValue }));
     } else if (field === 'note') {
       // Limit to 140 characters
       if (value.length <= 140) {
@@ -123,14 +125,16 @@ function App() {
               style={{ paddingLeft: '20px' }}
               data-testid="amount-input"
             />
-            <button
-              type="button"
+            <select
               className="currency-toggle"
+              value={formData.currency}
               onClick={toggleCurrency}
+              onChange={() => {}}
               data-testid="currency-toggle"
             >
-              {formData.currency}
-            </button>
+              <option value="MXN">MXN</option>
+              <option value="USD">USD</option>
+            </select>
           </div>
         </div>
 

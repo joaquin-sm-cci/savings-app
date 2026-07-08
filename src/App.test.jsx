@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import App from './App'
@@ -167,7 +167,8 @@ describe('Spending Tracker App', () => {
       await user.click(addButton)
       
       // Check spending was added
-      expect(screen.getByText('Personal')).toBeInTheDocument()
+      const spendingItem = screen.getByTestId('spending-item')
+      expect(within(spendingItem).getByText('Personal')).toBeInTheDocument()
       expect(screen.getByText('$50.75 MXN')).toBeInTheDocument()
       expect(screen.getByText('"Coffee and lunch"')).toBeInTheDocument()
     })
@@ -309,7 +310,7 @@ describe('Spending Tracker App', () => {
       const spendingItem = screen.getByTestId('spending-item')
       
       // Check all elements are present
-      expect(spendingItem).toContainElement(screen.getByText('House'))
+      expect(spendingItem).toContainElement(within(spendingItem).getByText('House'))
       expect(spendingItem).toContainElement(screen.getByText('$150.25 MXN'))
       expect(spendingItem).toContainElement(screen.getByText('"Groceries and utilities"'))
     })
@@ -326,7 +327,7 @@ describe('Spending Tracker App', () => {
       
       const spendingItem = screen.getByTestId('spending-item')
       
-      expect(spendingItem).toContainElement(screen.getByText('General'))
+      expect(spendingItem).toContainElement(within(spendingItem).getByText('General'))
       expect(spendingItem).toContainElement(screen.getByText('$25.00 MXN'))
       expect(spendingItem.querySelector('.spending-note')).not.toBeInTheDocument()
     })
